@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Time With vs Without — Crossover Calculator</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#111a33; --muted:#a9b4d0; --text:#eef2ff;
+      --accent:#7aa2ff; --good:#3ddc97; --warn:#ffcc66; --bad:#ff6b6b;
+      --border: rgba(255,255,255,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background: radial-gradient(1200px 600px at 20% -10%, rgba(122,162,255,.28), transparent 55%),
+                        radial-gradient(900px 500px at 110% 10%, rgba(61,220,151,.18), transparent 50%),
+                        var(--bg);
+      color:var(--text); font-family:var(--sans);
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:28px 18px 60px;}
+    header{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px;}
+    h1{margin:0; font-size:22px; letter-spacing:.2px;}
+    .sub{margin:6px 0 0; color:var(--muted); line-height:1.45; font-size:13.5px; max-width:760px;}
+    .pill{
+      font-family:var(--mono);
+      font-size:12px;
+      color:rgba(255,255,255,.82);
+      border:1px solid var(--border);
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      user-select:none;
+      white-space:nowrap;
+      align-self:flex-start;
+    }
+
+    .grid{display:grid; grid-template-columns: 1fr; gap:16px;}
+    @media (min-width: 860px){
+      .grid{grid-template-columns: 1.05fr .95fr;}
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+    .card h2{margin:0 0 10px; font-size:14px; color:rgba(255,255,255,.92); letter-spacing:.2px;}
+    label{display:block; margin:10px 0 6px; font-size:12.5px; color:rgba(255,255,255,.86);}
+    input[type="text"], input[type="date"]{
+      width:100%;
+      padding:10px 11px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.22);
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+    }
+    input[type="text"]::placeholder{color:rgba(255,255,255,.35)}
+    .row{display:grid; grid-template-columns:1fr; gap:10px;}
+    @media (min-width: 520px){
+      .row{grid-template-columns: 1fr 1fr;}
+    }
+
+    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;}
+    button{
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(122,162,255,.12);
+      color:rgba(255,255,255,.92);
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:13px;
+    }
+    button:hover{background:rgba(122,162,255,.18)}
+    .ghost{background:rgba(255,255,255,.05)}
+    .ghost:hover{background:rgba(255,255,255,.08)}
+    .danger{background:rgba(255,107,107,.12)}
+    .danger:hover{background:rgba(255,107,107,.18)}
+
+    .result{
+      display:flex; flex-direction:column; gap:12px;
+    }
+    .kpi{
+      display:grid; grid-template-columns:1fr; gap:10px;
+    }
+    .kpi .box{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(0,0,0,.18);
+    }
+    .kpi .label{font-size:12px; color:var(--muted); margin-bottom:6px;}
+    .kpi .value{font-size:18px; font-family:var(--mono); letter-spacing:.2px;}
+    .kpi .small{font-size:12px; color:rgba(255,255,255,.72); margin-top:6px; line-height:1.35;}
+    @media (min-width: 520px){
+      .kpi{grid-template-columns: 1fr 1fr;}
+    }
+
+    .status{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+    }
+    .badge{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+      font-family:var(--mono);
+    }
+    .badge.good{border-color:rgba(61,220,151,.45); background:rgba(61,220,151,.10); color:rgba(255,255,255,.92)}
+    .badge.warn{border-color:rgba(255,204,102,.45); background:rgba(255,204,102,.10)}
+    .badge.bad{border-color:rgba(255,107,107,.45); background:rgba(255,107,107,.10)}
+    .status .msg{color:rgba(255,255,255,.88); font-size:13px; line-height:1.35;}
+
+    .timeline{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      background:rgba(0,0,0,.18);
+    }
+    .timeline .bar{
+      position:relative;
+      height:24px;
+      border-radius:12px;
+      background:rgba(255,255,255,.08);
+      overflow:visible;
+      margin:12px 0 16px;
+    }
+    .timeline .segment{
+      position:absolute; left:0; top:0; bottom:0;
+      border-radius:12px;
+      transition:all 0.3s ease;
+    }
+    .timeline .segment.without{
+      background:linear-gradient(90deg, rgba(122,162,255,.25), rgba(122,162,255,.35));
+      border-right:2px solid rgba(122,162,255,.6);
+    }
+    .timeline .segment.with{
+      background:linear-gradient(90deg, rgba(61,220,151,.25), rgba(61,220,151,.35));
+    }
+    .timeline .segment.progress{
+      background:linear-gradient(90deg, rgba(61,220,151,.4), rgba(61,220,151,.5));
+      border-left:2px solid rgba(61,220,151,.7);
+    }
+    .timeline .tick{
+      position:absolute; top:-4px; bottom:-4px;
+      width:3px;
+      background:rgba(255,255,255,.5);
+      border-radius:2px;
+      z-index:2;
+      transition:all 0.3s ease;
+    }
+    .timeline .tick.event{
+      background:rgba(122,162,255,.8);
+      box-shadow:0 0 8px rgba(122,162,255,.4);
+    }
+    .timeline .tick.cross{
+      background:rgba(61,220,151,.9);
+      box-shadow:0 0 8px rgba(61,220,151,.4);
+      width:4px;
+    }
+    .timeline .tick.today{
+      background:rgba(255,255,255,.9);
+      box-shadow:0 0 8px rgba(255,255,255,.3);
+      width:3px;
+    }
+    .timeline .tick-label{
+      position:absolute;
+      top:100%;
+      left:50%;
+      transform:translateX(-50%);
+      margin-top:8px;
+      font-size:10px;
+      color:var(--muted);
+      white-space:nowrap;
+      font-family:var(--mono);
+      opacity:0.75;
+      pointer-events:none;
+    }
+    .timeline .tick-label.event{
+      color:rgba(122,162,255,.9);
+    }
+    .timeline .tick-label.cross{
+      color:rgba(61,220,151,.9);
+    }
+    .timeline .tick-label.today{
+      color:rgba(255,255,255,.9);
+      top:auto;
+      bottom:100%;
+      margin-top:0;
+      margin-bottom:8px;
+    }
+    .timeline .legend{
+      display:grid; grid-template-columns:1fr; gap:8px;
+      font-size:12.5px; color:rgba(255,255,255,.82);
+      margin-top:24px;
+    }
+    @media (min-width: 520px){
+      .timeline .legend{grid-template-columns: 1fr 1fr;}
+    }
+    .legend div{display:flex; gap:8px; align-items:center}
+    .dot{width:10px; height:10px; border-radius:999px; display:inline-block; flex-shrink:0}
+    .dot.birth{background:rgba(255,255,255,.35)}
+    .dot.event{background:rgba(122,162,255,.8)}
+    .dot.cross{background:rgba(61,220,151,.85)}
+    .dot.today{background:rgba(255,255,255,.8)}
+    .timeline .segments-label{
+      display:flex;
+      justify-content:space-between;
+      margin-top:28px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .timeline .segments-label span{
+      font-family:var(--mono);
+    }
+    .hint{
+      margin-top:12px;
+      color:rgba(255,255,255,.70);
+      font-size:12.5px;
+      line-height:1.5;
+    }
+    .mono{font-family:var(--mono)}
+    .error{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,107,107,.35);
+      background:rgba(255,107,107,.10);
+      color:rgba(255,255,255,.92);
+      font-size:13px;
+      line-height:1.4;
+      display:none;
+    }
+    footer{
+      margin-top:16px;
+      color:rgba(255,255,255,.52);
+      font-size:12px;
+      line-height:1.5;
+    }
+    a{color:rgba(122,162,255,.95); text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Time With vs Without — Crossover Calculator</h1>
+        <p class="sub">
+          Calculates the date when you will have lived <span class="mono">more time with an event than without it</span>
+          (e.g., “more time married than not”). All calculations are <span class="mono">date-only</span> and run entirely in your browser.
+        </p>
+      </div>
+      <div class="pill">Client-side • UTC day math • Date-only</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inputs</h2>
+
+        <label for="label">Event label (optional)</label>
+        <input id="label" type="text" placeholder="Married, Working, Living in Madrid, etc." />
+
+        <div class="row">
+          <div>
+            <label for="birth">Birth date</label>
+            <input id="birth" type="date" />
+          </div>
+          <div>
+            <label for="start">Event start date</label>
+            <input id="start" type="date" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="copyLinkBtn" type="button">Copy shareable link</button>
+          <button id="resetBtn" type="button" class="ghost">Reset</button>
+          <button id="clearBtn" type="button" class="danger">Clear saved data</button>
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <div class="hint">
+          Notes:
+          <ul>
+            <li>Dates are treated as UTC midnights to avoid timezone/DST drift.</li>
+            <li>If you use “Copy shareable link”, your dates will be included in the URL query parameters.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Result</h2>
+
+        <div class="result">
+          <div class="kpi">
+            <div class="box">
+              <div class="label">Crossover date</div>
+              <div id="crossover" class="value">—</div>
+              <div id="crossoverNote" class="small">Enter dates to calculate.</div>
+            </div>
+            <div class="box">
+              <div class="label">Time until crossover</div>
+              <div id="daysLeft" class="value">—</div>
+              <div id="daysLeftNote" class="small"></div>
+            </div>
+          </div>
+
+          <div class="status">
+            <span id="badge" class="badge">—</span>
+            <div id="statusMsg" class="msg">No calculation yet.</div>
+          </div>
+
+          <div class="timeline">
+            <div class="label" style="margin:0 0 8px; color:var(--muted); font-size:12px;">Timeline</div>
+            <div class="bar" aria-hidden="true">
+              <div id="segmentWithout" class="segment without" style="left:0%; width:0%"></div>
+              <div id="segmentWith" class="segment with" style="left:0%; width:0%"></div>
+              <div id="segmentProgress" class="segment progress" style="left:0%; width:0%"></div>
+              <div id="tickEvent" class="tick event" style="left:0%">
+                <div class="tick-label event" id="tickEventLabel">Event</div>
+              </div>
+              <div id="tickToday" class="tick today" style="left:0%">
+                <div class="tick-label today" id="tickTodayLabel">Today</div>
+              </div>
+              <div id="tickCross" class="tick cross" style="left:0%">
+                <div class="tick-label cross" id="tickCrossLabel">Crossover</div>
+              </div>
+            </div>
+            <div class="segments-label">
+              <span id="segmentWithoutLabel">Time without</span>
+              <span id="segmentWithLabel">Time with</span>
+            </div>
+            <div class="legend">
+              <div><span class="dot birth"></span>Birth</div>
+              <div><span class="dot event"></span>Event start</div>
+              <div><span class="dot today"></span>Today</div>
+              <div><span class="dot cross"></span>Crossover</div>
+            </div>
+          </div>
+
+          <footer>
+            Formula (date-only): If <span class="mono">B</span> is birth date and <span class="mono">S</span> is event start,
+            the crossover date is <span class="mono">X = 2·S − B</span>.
+          </footer>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const els = {
+    label: document.getElementById('label'),
+    birth: document.getElementById('birth'),
+    start: document.getElementById('start'),
+    error: document.getElementById('error'),
+    crossover: document.getElementById('crossover'),
+    crossoverNote: document.getElementById('crossoverNote'),
+    daysLeft: document.getElementById('daysLeft'),
+    daysLeftNote: document.getElementById('daysLeftNote'),
+    badge: document.getElementById('badge'),
+    statusMsg: document.getElementById('statusMsg'),
+    segmentWithout: document.getElementById('segmentWithout'),
+    segmentWith: document.getElementById('segmentWith'),
+    segmentProgress: document.getElementById('segmentProgress'),
+    segmentWithoutLabel: document.getElementById('segmentWithoutLabel'),
+    segmentWithLabel: document.getElementById('segmentWithLabel'),
+    tickEvent: document.getElementById('tickEvent'),
+    tickToday: document.getElementById('tickToday'),
+    tickCross: document.getElementById('tickCross'),
+    tickEventLabel: document.getElementById('tickEventLabel'),
+    tickTodayLabel: document.getElementById('tickTodayLabel'),
+    tickCrossLabel: document.getElementById('tickCrossLabel'),
+    copyLinkBtn: document.getElementById('copyLinkBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+  };
+
+  const LS_KEY = 'with-vs-without:v1';
+
+  function showError(msg){
+    els.error.textContent = msg;
+    els.error.style.display = 'block';
+  }
+  function clearError(){
+    els.error.textContent = '';
+    els.error.style.display = 'none';
+  }
+
+  function parseISODate(iso){
+    // Expects YYYY-MM-DD
+    if(!iso || typeof iso !== 'string') return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if(!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    if(mo < 1 || mo > 12) return null;
+    if(d < 1 || d > 31) return null;
+    return { y, mo, d };
+  }
+
+  function toDayIndex(iso){
+    const p = parseISODate(iso);
+    if(!p) return null;
+    const ms = Date.UTC(p.y, p.mo - 1, p.d);
+    return Math.floor(ms / 86400000);
+  }
+
+  function fromDayIndex(idx){
+    // idx is days since epoch (UTC). Convert to YYYY-MM-DD.
+    const ms = idx * 86400000;
+    const d = new Date(ms);
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function todayDayIndex(){
+    const now = new Date();
+    // Use UTC date parts, not local, to remain consistent with UTC day math.
+    const y = now.getUTCFullYear();
+    const m = now.getUTCMonth();
+    const d = now.getUTCDate();
+    return Math.floor(Date.UTC(y, m, d) / 86400000);
+  }
+
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+  function formatTimeUntil(days){
+    // Format days into human-readable time (years, months, days)
+    if(days === 0) return '0';
+    
+    const absDays = Math.abs(days);
+    const isPast = days < 0;
+    
+    // Approximate: 365.25 days per year, 30.44 days per month
+    const years = Math.floor(absDays / 365.25);
+    const remainingAfterYears = absDays % 365.25;
+    const months = Math.floor(remainingAfterYears / 30.44);
+    const remainingDays = Math.floor(remainingAfterYears % 30.44);
+    
+    const parts = [];
+    if(years > 0) parts.push(years === 1 ? '1 year' : `${years} years`);
+    if(months > 0) parts.push(months === 1 ? '1 month' : `${months} months`);
+    if(remainingDays > 0 || parts.length === 0) {
+      parts.push(remainingDays === 1 ? '1 day' : `${remainingDays} days`);
+    }
+    
+    // Join with commas, and use "and" before the last part if there are multiple
+    if(parts.length > 1) {
+      const last = parts.pop();
+      return parts.join(', ') + ' and ' + last;
+    }
+    return parts[0];
+  }
+
+  function setBadge(kind, text){
+    els.badge.className = 'badge' + (kind ? ` ${kind}` : '');
+    els.badge.textContent = text;
+  }
+
+  function resetLabelPosition(labelEl){
+    labelEl.style.left = '50%';
+    labelEl.style.transform = 'translateX(-50%)';
+  }
+
+  function updateTimeline(bIdx, sIdx, tIdx, xIdx){
+    // Map [birth .. max(today, crossover)] to [0..100]
+    const end = Math.max(tIdx, xIdx);
+    const span = Math.max(1, end - bIdx);
+
+    const pos = (idx) => clamp01((idx - bIdx) / span) * 100;
+
+    const sPos = pos(sIdx);
+    const tPos = pos(tIdx);
+    const xPos = pos(xIdx);
+
+    // Update tick positions
+    els.tickEvent.style.left = `${sPos}%`;
+    els.tickToday.style.left = `${tPos}%`;
+    els.tickCross.style.left = `${xPos}%`;
+    
+    // Adjust label positioning to prevent overlap at edges
+    const adjustLabel = (labelEl, pos, isTop = false) => {
+      if(pos < 10){
+        // Near left edge - align left
+        labelEl.style.left = '0%';
+        labelEl.style.transform = 'translateX(0)';
+      } else if(pos > 90){
+        // Near right edge - align right
+        labelEl.style.left = '100%';
+        labelEl.style.transform = 'translateX(-100%)';
+      } else {
+        // Center position
+        labelEl.style.left = '50%';
+        labelEl.style.transform = 'translateX(-50%)';
+      }
+    };
+    
+    adjustLabel(els.tickEventLabel, sPos);
+    adjustLabel(els.tickTodayLabel, tPos, true); // Today is on top
+    adjustLabel(els.tickCrossLabel, xPos);
+
+    // Update segments
+    // Segment 1: Time without event (birth to event start)
+    els.segmentWithout.style.left = '0%';
+    els.segmentWithout.style.width = `${sPos}%`;
+    
+    // Segment 2: Time with event (event start to crossover)
+    els.segmentWith.style.left = `${sPos}%`;
+    els.segmentWith.style.width = `${xPos - sPos}%`;
+    
+    // Segment 3: Progress indicator (event start to today)
+    // Show brighter progress if today is before crossover, otherwise show it extends past crossover
+    if(tIdx >= sIdx){
+      els.segmentProgress.style.left = `${sPos}%`;
+      if(tIdx <= xIdx){
+        // Today is between event start and crossover
+        els.segmentProgress.style.width = `${tPos - sPos}%`;
+      } else {
+        // Today is after crossover - show progress extends to today
+        els.segmentProgress.style.width = `${tPos - sPos}%`;
+      }
+      els.segmentProgress.style.display = 'block';
+    } else {
+      els.segmentProgress.style.display = 'none';
+    }
+    
+    // Update segment labels with percentages
+    const withoutPct = Math.round(sPos);
+    const withPct = Math.round(xPos - sPos);
+    els.segmentWithoutLabel.textContent = `Time without (${withoutPct}%)`;
+    els.segmentWithLabel.textContent = `Time with (${withPct}%)`;
+  }
+
+  function compute(){
+    clearError();
+
+    const label = (els.label.value || '').trim();
+    const birthISO = els.birth.value;
+    const startISO = els.start.value;
+
+    // If no inputs, clear view but keep calm.
+    if(!birthISO && !startISO && !label){
+      renderEmpty();
+      persist();
+      return;
+    }
+
+    const b = toDayIndex(birthISO);
+    const s = toDayIndex(startISO);
+
+    if(birthISO && b === null) return showError('Birth date must be in YYYY-MM-DD format.');
+    if(startISO && s === null) return showError('Event start date must be in YYYY-MM-DD format.');
+
+    if(birthISO && startISO){
+      if(s < b){
+        return showError('Event start date must be on or after birth date.');
+      }
+      const x = (2 * s) - b;   // crossover day index
+      const xISO = fromDayIndex(x);
+      const t = todayDayIndex();
+
+      els.crossover.textContent = xISO;
+
+      const eventName = label ? `"${label}"` : 'this event';
+
+      // Status and days remaining
+      if(t < x){
+        const days = x - t;
+        const timeStr = formatTimeUntil(days);
+        els.daysLeft.textContent = timeStr;
+        els.daysLeftNote.textContent = `As of today (UTC date), you have ${timeStr} remaining.`;
+        setBadge('warn', 'Not yet');
+        els.statusMsg.textContent = `You will have lived more time with ${eventName} than without on ${xISO}.`;
+        els.crossoverNote.textContent = `Crossover is in the future.`;
+      } else if(t === x){
+        els.daysLeft.textContent = '0';
+        els.daysLeftNote.textContent = `Crossover is today (UTC date). "More" will be true starting tomorrow.`;
+        setBadge('warn', 'Equal today');
+        els.statusMsg.textContent = `Today (${xISO}), time with ${eventName} equals time without it.`;
+        els.crossoverNote.textContent = `Equal today.`;
+      } else {
+        const days = t - x;
+        const timeStr = formatTimeUntil(days);
+        els.daysLeft.textContent = '0';
+        els.daysLeftNote.textContent = `Crossover occurred ${timeStr} ago (UTC date).`;
+        setBadge('good', 'Already');
+        els.statusMsg.textContent = `You have already lived more time with ${eventName} than without (since ${xISO}).`;
+        els.crossoverNote.textContent = `Crossover has passed.`;
+      }
+
+      updateTimeline(b, s, t, x);
+
+      persist();
+      return;
+    }
+
+    // Partial inputs
+    if(!birthISO || !startISO){
+      els.crossover.textContent = '—';
+      els.daysLeft.textContent = '—';
+      els.daysLeftNote.textContent = '';
+      setBadge('', '—');
+      els.statusMsg.textContent = 'Enter both dates to calculate.';
+      els.crossoverNote.textContent = 'Waiting for both dates.';
+      // Timeline reset
+      els.tickEvent.style.left = '0%';
+      els.tickToday.style.left = '0%';
+      els.tickCross.style.left = '0%';
+      resetLabelPosition(els.tickEventLabel);
+      resetLabelPosition(els.tickTodayLabel);
+      resetLabelPosition(els.tickCrossLabel);
+      els.segmentWithout.style.width = '0%';
+      els.segmentWith.style.width = '0%';
+      els.segmentProgress.style.width = '0%';
+      els.segmentWithoutLabel.textContent = 'Time without';
+      els.segmentWithLabel.textContent = 'Time with';
+      persist();
+    }
+  }
+
+  function renderEmpty(){
+    els.crossover.textContent = '—';
+    els.crossoverNote.textContent = 'Enter dates to calculate.';
+    els.daysLeft.textContent = '—';
+    els.daysLeftNote.textContent = '';
+    setBadge('', '—');
+    els.statusMsg.textContent = 'No calculation yet.';
+    els.tickEvent.style.left = '0%';
+    els.tickToday.style.left = '0%';
+    els.tickCross.style.left = '0%';
+    resetLabelPosition(els.tickEventLabel);
+    resetLabelPosition(els.tickTodayLabel);
+    resetLabelPosition(els.tickCrossLabel);
+    els.segmentWithout.style.width = '0%';
+    els.segmentWith.style.width = '0%';
+    els.segmentProgress.style.width = '0%';
+    els.segmentWithoutLabel.textContent = 'Time without';
+    els.segmentWithLabel.textContent = 'Time with';
+    clearError();
+  }
+
+  function persist(){
+    const data = {
+      label: (els.label.value || '').trim(),
+      birth: els.birth.value || '',
+      start: els.start.value || ''
+    };
+    try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (_) {}
+  }
+
+  function restore(){
+    // 1) URL params take precedence
+    const url = new URL(window.location.href);
+    const b = url.searchParams.get('b') || '';
+    const s = url.searchParams.get('s') || '';
+    const label = url.searchParams.get('label') || '';
+
+    if(b || s || label){
+      if(label) els.label.value = label;
+      if(b) els.birth.value = b;
+      if(s) els.start.value = s;
+      compute();
+      return;
+    }
+
+    // 2) localStorage fallback
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) { renderEmpty(); return; }
+      const data = JSON.parse(raw);
+      if(data.label) els.label.value = data.label;
+      if(data.birth) els.birth.value = data.birth;
+      if(data.start) els.start.value = data.start;
+    } catch (_) {}
+    compute();
+  }
+
+  async function copyShareableLink(){
+    clearError();
+
+    const label = (els.label.value || '').trim();
+    const birthISO = els.birth.value;
+    const startISO = els.start.value;
+
+    if(!birthISO || !startISO){
+      showError('To copy a shareable link, please fill both dates (birth and event start).');
+      return;
+    }
+
+    // Validate before copying
+    const b = toDayIndex(birthISO);
+    const s = toDayIndex(startISO);
+    if(b === null || s === null){
+      showError('Please ensure dates are valid (YYYY-MM-DD).');
+      return;
+    }
+    if(s < b){
+      showError('Event start date must be on or after birth date.');
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('b', birthISO);
+    url.searchParams.set('s', startISO);
+    if(label) url.searchParams.set('label', label);
+    else url.searchParams.delete('label');
+
+    const text = url.toString();
+
+    try{
+      await navigator.clipboard.writeText(text);
+      // Lightweight confirmation without popups
+      els.copyLinkBtn.textContent = 'Copied';
+      setTimeout(() => els.copyLinkBtn.textContent = 'Copy shareable link', 1200);
+    } catch (e){
+      showError('Could not access clipboard. You can manually copy the URL from the address bar.');
+    }
+  }
+
+  function resetForm(){
+    clearError();
+    // Keep saved data; just recompute from current values
+    compute();
+  }
+
+  function clearSaved(){
+    clearError();
+    try { localStorage.removeItem(LS_KEY); } catch(_) {}
+    // Also remove query params without reloading
+    const url = new URL(window.location.href);
+    url.searchParams.delete('b');
+    url.searchParams.delete('s');
+    url.searchParams.delete('label');
+    window.history.replaceState({}, '', url.toString());
+
+    els.label.value = '';
+    els.birth.value = '';
+    els.start.value = '';
+    renderEmpty();
+  }
+
+  // Wire events
+  ['input','change'].forEach(evt=>{
+    els.label.addEventListener(evt, compute);
+    els.birth.addEventListener(evt, compute);
+    els.start.addEventListener(evt, compute);
+  });
+  els.copyLinkBtn.addEventListener('click', copyShareableLink);
+  els.resetBtn.addEventListener('click', resetForm);
+  els.clearBtn.addEventListener('click', clearSaved);
+
+  restore();
+})();
+</script>
+</body>
+</html>
