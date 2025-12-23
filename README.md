@@ -64,3 +64,5 @@ This is free and unencumbered software released into the public domain. For more
 
 Built with vanilla JavaScript, CSS, and HTML. No frameworks, no dependencies, just pure web technologies.
 
+**Note**: This project was 100% built by AI, demonstrating the capabilities of AI-assisted development.
+
