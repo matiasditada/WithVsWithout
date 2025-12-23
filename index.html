@@ -512,6 +512,7 @@
 
   const LS_KEY = 'with-vs-without:v1';
   const LS_FAVORITES_KEY = 'with-vs-without:favorites:v1';
+  let editingFavoriteIndex = null;
 
   function showError(msg){
     els.error.textContent = msg;
@@ -587,6 +588,21 @@
       return parts.join(', ') + ' and ' + last;
     }
     return parts[0];
+  }
+
+  function calculateAgeAtCrossover(birthIdx, crossoverIdx){
+    if(birthIdx === null || crossoverIdx === null) return null;
+    const days = crossoverIdx - birthIdx;
+    // Calculate years with decimal precision
+    const years = days / 365.25;
+    return years;
+  }
+
+  function formatAge(years){
+    if(years === null || isNaN(years)) return '';
+    // Round to 1 decimal place for display
+    const rounded = Math.round(years * 10) / 10;
+    return `Age: ${rounded} years`;
   }
 
   function setBadge(kind, text){
@@ -695,6 +711,10 @@
       const x = (2 * s) - b;   // crossover day index
       const xISO = fromDayIndex(x);
       const t = todayDayIndex();
+      
+      // Calculate age at crossover
+      const ageAtCrossover = calculateAgeAtCrossover(b, x);
+      const ageText = formatAge(ageAtCrossover);
 
       els.crossover.textContent = xISO;
 
@@ -708,13 +728,13 @@
         els.daysLeftNote.textContent = `As of today (UTC date), you have ${timeStr} remaining.`;
         setBadge('warn', 'Not yet');
         els.statusMsg.textContent = `You will have lived more time with ${eventName} than without on ${xISO}.`;
-        els.crossoverNote.textContent = `Crossover is in the future.`;
+        els.crossoverNote.textContent = ageText ? `${ageText}. Crossover is in the future.` : `Crossover is in the future.`;
       } else if(t === x){
         els.daysLeft.textContent = '0';
         els.daysLeftNote.textContent = `Crossover is today (UTC date). "More" will be true starting tomorrow.`;
         setBadge('warn', 'Equal today');
         els.statusMsg.textContent = `Today (${xISO}), time with ${eventName} equals time without it.`;
-        els.crossoverNote.textContent = `Equal today.`;
+        els.crossoverNote.textContent = ageText ? `${ageText}. Equal today.` : `Equal today.`;
       } else {
         const days = t - x;
         const timeStr = formatTimeUntil(days);
@@ -722,7 +742,7 @@
         els.daysLeftNote.textContent = `Crossover occurred ${timeStr} ago (UTC date).`;
         setBadge('good', 'Already');
         els.statusMsg.textContent = `You have already lived more time with ${eventName} than without (since ${xISO}).`;
-        els.crossoverNote.textContent = `Crossover has passed.`;
+        els.crossoverNote.textContent = ageText ? `${ageText}. Crossover has passed.` : `Crossover has passed.`;
       }
 
       updateTimeline(b, s, t, x);
@@ -889,6 +909,29 @@
     }
 
     const favorites = getFavorites();
+    
+    // If editing, update the existing favorite
+    if(editingFavoriteIndex !== null && editingFavoriteIndex >= 0 && editingFavoriteIndex < favorites.length){
+      const existingFavorite = favorites[editingFavoriteIndex];
+      favorites[editingFavoriteIndex] = {
+        label,
+        birth,
+        start,
+        created: existingFavorite.created // Keep original creation date
+      };
+      saveFavorites(favorites);
+      renderFavoritesTable();
+      
+      // Clear editing state
+      editingFavoriteIndex = null;
+      els.saveFavoriteBtn.textContent = 'Updated!';
+      setTimeout(() => {
+        els.saveFavoriteBtn.textContent = 'Save as favorite';
+      }, 1500);
+      return;
+    }
+
+    // Otherwise, create a new favorite
     const newFavorite = { 
       label, 
       birth, 
@@ -896,8 +939,9 @@
       created: new Date().toISOString()
     };
     
-    // Check if this exact favorite already exists
-    const exists = favorites.some(fav => 
+    // Check if this exact favorite already exists (excluding the one we're editing)
+    const exists = favorites.some((fav, index) => 
+      index !== editingFavoriteIndex &&
       fav.birth === birth && fav.start === start && fav.label === label
     );
 
@@ -921,6 +965,10 @@
     const favorites = getFavorites();
     if(index < 0 || index >= favorites.length) return;
     
+    // Clear editing state when viewing
+    editingFavoriteIndex = null;
+    els.saveFavoriteBtn.textContent = 'Save as favorite';
+    
     const fav = favorites[index];
     els.label.value = fav.label || '';
     els.birth.value = fav.birth || '';
@@ -932,6 +980,10 @@
   function editFavorite(index){
     const favorites = getFavorites();
     if(index < 0 || index >= favorites.length) return;
+    
+    // Set editing state
+    editingFavoriteIndex = index;
+    els.saveFavoriteBtn.textContent = 'Update favorite';
     
     const fav = favorites[index];
     els.label.value = fav.label || '';
@@ -952,6 +1004,16 @@
     
     favorites.splice(index, 1);
     saveFavorites(favorites);
+    
+    // Clear editing state if we deleted the favorite being edited
+    if(editingFavoriteIndex === index){
+      editingFavoriteIndex = null;
+      els.saveFavoriteBtn.textContent = 'Save as favorite';
+    } else if(editingFavoriteIndex !== null && editingFavoriteIndex > index){
+      // Adjust editing index if we deleted a favorite before the one being edited
+      editingFavoriteIndex--;
+    }
+    
     renderFavoritesTable();
     clearError();
   }
@@ -1034,6 +1096,9 @@
 
   function resetForm(){
     clearError();
+    // Clear editing state
+    editingFavoriteIndex = null;
+    els.saveFavoriteBtn.textContent = 'Save as favorite';
     // Clear form fields but keep saved data in localStorage
     els.label.value = '';
     els.birth.value = '';
