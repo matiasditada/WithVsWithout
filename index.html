@@ -436,6 +436,9 @@
               <div class="label">Crossover date</div>
               <div id="crossover" class="value">—</div>
               <div id="crossoverNote" class="small">Enter dates to calculate.</div>
+              <button id="downloadIcsBtn" type="button" class="ghost" style="margin-top:8px; width:100%; font-size:11px; padding:6px 10px; display:none;">
+                📅 Add Evento to your calendar
+              </button>
             </div>
             <div class="box">
               <div class="label">Time until crossover</div>
@@ -555,6 +558,7 @@
     error: document.getElementById('error'),
     crossover: document.getElementById('crossover'),
     crossoverNote: document.getElementById('crossoverNote'),
+    downloadIcsBtn: document.getElementById('downloadIcsBtn'),
     daysLeft: document.getElementById('daysLeft'),
     daysLeftNote: document.getElementById('daysLeftNote'),
     badge: document.getElementById('badge'),
@@ -671,6 +675,64 @@
     return `Age: ${rounded} years`;
   }
 
+  function formatDateForICS(isoDate){
+    // Convert YYYY-MM-DD to YYYYMMDD for ICS format
+    return isoDate.replace(/-/g, '');
+  }
+
+  function generateICS(crossoverDate, eventLabel, birthDate, eventStartDate){
+    const dateStr = formatDateForICS(crossoverDate);
+    const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const uid = `crossover-${dateStr}@withvswithout`;
+    
+    const eventName = eventLabel || 'Event';
+    const summary = `Crossover: More time with ${eventName} than without`;
+    const description = `Crossover date for "${eventName}"\n\n` +
+      `Birth date: ${birthDate}\n` +
+      `Event start: ${eventStartDate}\n` +
+      `Crossover date: ${crossoverDate}\n\n` +
+      `On this date, you will have lived more time with this event than without it.`;
+    
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//WithVsWithout//Crossover Calculator//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${dateStr}`,
+      `DTEND;VALUE=DATE:${dateStr}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+      'STATUS:CONFIRMED',
+      'SEQUENCE:0',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+    
+    return icsContent;
+  }
+
+  function downloadICS(crossoverDate, eventLabel, birthDate, eventStartDate){
+    if(!crossoverDate || crossoverDate === '—') return;
+    
+    const icsContent = generateICS(crossoverDate, eventLabel, birthDate, eventStartDate);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const eventName = (eventLabel || 'event').toLowerCase().replace(/\s+/g, '-');
+    link.download = `crossover-${eventName}-${crossoverDate}.ics`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   function setBadge(kind, text){
     els.badge.className = 'badge' + (kind ? ` ${kind}` : '');
     els.badge.textContent = text;
@@ -783,6 +845,9 @@
       const ageText = formatAge(ageAtCrossover);
 
       els.crossover.textContent = xISO;
+      
+      // Show download button
+      els.downloadIcsBtn.style.display = 'block';
 
       const eventName = label ? `"${label}"` : 'this event';
 
@@ -822,6 +887,7 @@
       els.crossover.textContent = '—';
       els.daysLeft.textContent = '—';
       els.daysLeftNote.textContent = '';
+      els.downloadIcsBtn.style.display = 'none';
       setBadge('', '—');
       els.statusMsg.textContent = 'Enter both dates to calculate.';
       els.crossoverNote.textContent = 'Waiting for both dates.';
@@ -846,6 +912,7 @@
     els.crossoverNote.textContent = 'Enter dates to calculate.';
     els.daysLeft.textContent = '—';
     els.daysLeftNote.textContent = '';
+    els.downloadIcsBtn.style.display = 'none';
     setBadge('', '—');
     els.statusMsg.textContent = 'No calculation yet.';
     els.tickEvent.style.left = '0%';
@@ -1196,6 +1263,16 @@
   });
   els.saveFavoriteBtn.addEventListener('click', saveCurrentAsFavorite);
   els.copyLinkBtn.addEventListener('click', copyShareableLink);
+  els.downloadIcsBtn.addEventListener('click', function(){
+    const label = (els.label.value || '').trim();
+    const birthISO = els.birth.value;
+    const startISO = els.start.value;
+    const crossoverISO = els.crossover.textContent;
+    
+    if(crossoverISO && crossoverISO !== '—' && birthISO && startISO){
+      downloadICS(crossoverISO, label, birthISO, startISO);
+    }
+  });
   els.resetBtn.addEventListener('click', resetForm);
   els.clearBtn.addEventListener('click', clearSaved);
 
