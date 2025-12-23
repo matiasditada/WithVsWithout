@@ -386,13 +386,13 @@
 
         <div id="error" class="error"></div>
 
-        <div class="hint">
+        <!-- <div class="hint">
           Notes:
           <ul>
             <li>Dates are treated as UTC midnights to avoid timezone/DST drift.</li>
             <li>If you use “Copy shareable link”, your dates will be included in the URL query parameters.</li>
           </ul>
-        </div>
+        </div> -->
       </section>
 
       <section class="card">
@@ -445,10 +445,10 @@
             </div>
           </div>
 
-          <footer>
+          <!-- <footer>
             Formula (date-only): If <span class="mono">B</span> is birth date and <span class="mono">S</span> is event start,
             the crossover date is <span class="mono">X = 2·S − B</span>.
-          </footer>
+          </footer> -->
         </div>
       </section>
     </div>
@@ -1034,8 +1034,11 @@
 
   function resetForm(){
     clearError();
-    // Keep saved data; just recompute from current values
-    compute();
+    // Clear form fields but keep saved data in localStorage
+    els.label.value = '';
+    els.birth.value = '';
+    els.start.value = '';
+    renderEmpty();
   }
 
   function clearSaved(){
